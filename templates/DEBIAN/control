@@ -1,0 +1,9 @@
+Package: dufs
+Version: version
+Architecture: arch
+Maintainer: wcbing <i@wcbing.top>
+Section: web
+Priority: optional
+Homepage: https://github.com/sigoden/dufs
+Description: A file server that supports static serving, uploading,
+ searching, accessing control, webdav... 

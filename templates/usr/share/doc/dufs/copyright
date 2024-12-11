@@ -3,11 +3,11 @@ Upstream-Name: dufs
 Source: https://github.com/sigoden/dufs/releases
 
 Files: *
-Copyright: 2022, sigoden <sigoden@gmail.com>
+Copyright: 2022 sigoden <sigoden@gmail.com>
 License: Apache-2.0
 
 Files: DEBIAN/*
-Copyright: 2024, wcbing <i@wcbing.top>
+Copyright: 2024 wcbing <i@wcbing.top>
 License: MIT
 
 License: Apache-2.0

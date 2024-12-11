@@ -6,7 +6,7 @@ Self-packaged [dufs](https://github.com/sigoden/dufs) for use on Debian or other
 ## Usage/用法
 
 ```sh
-echo "deb [trusted=yes] https://github.com/wcbing/dufs-debs/releases/latest/download ./" |
+echo "deb [trusted=yes] https://github.com/wcbing-build/dufs-debs/releases/latest/download ./" |
     sudo tee /etc/apt/sources.list.d/dufs.list
 sudo apt update
 ```

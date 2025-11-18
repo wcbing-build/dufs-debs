@@ -34,6 +34,8 @@ get_url_by_arch() {
     esac
 }
 
+mkdir output
+
 for i in $ARCH; do
     echo "Building $i package..."
     build "$i"

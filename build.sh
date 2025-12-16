@@ -1,47 +1,65 @@
 #!/bin/sh
+set -e
 
-PACKAGE="dufs"
-REPO="sigoden/dufs"
+# Check and extract version number
+[ $# != 1 ] && echo "Usage:  $0 <latest_releases_tag>" && exit 1
+VERSION=$(echo "$1" | sed -n 's|[^0-9]*\([^_]*\).*|\1|p') && test "$VERSION"
 
-# Processing again to avoid errors of remote incoming 
-VERSION=$(echo $1 | sed -n 's|[^0-9]*\([^_]*\).*|\1|p')
+PACKAGE=dufs
+REPO=sigoden/dufs
 
-ARCH="amd64 arm64"
+ARCH_LIST="amd64 arm64"
 AMD64_FILENAME="dufs-v$VERSION-x86_64-unknown-linux-musl.tar.gz"
 ARM64_FILENAME="dufs-v$VERSION-aarch64-unknown-linux-musl.tar.gz"
 
+prepare() {
+    mkdir -p output tmp
+    curl -fs "https://raw.githubusercontent.com/sigoden/dufs/refs/heads/main/CHANGELOG.md" | gzip > tmp/changelog.gz
+}
+
 build() {
-    # Prepare
-    BASE_DIR="$PACKAGE"_"$VERSION"-1_"$1"
-    cp -r templates "$BASE_DIR"
-    sed -i "s/Architecture: arch/Architecture: $1/" "$BASE_DIR/DEBIAN/control"
-    sed -i "s/Version: version/Version: $VERSION-1/" "$BASE_DIR/DEBIAN/control"
+    BASE_DIR="$PACKAGE"_"$ARCH" && rm -rf "$BASE_DIR"
+    install -D templates/copyright -t "$BASE_DIR/usr/share/doc/$PACKAGE"
+    install -D tmp/changelog.gz -t "$BASE_DIR/usr/share/doc/$PACKAGE"
+
     # Download and move file
-    curl -sLo "$BASE_DIR/usr/share/doc/dufs/CHANGELOG.md" "https://raw.githubusercontent.com/sigoden/dufs/refs/heads/main/CHANGELOG.md"
-    curl -sLo "$PACKAGE-$1.tar.gz" "$(get_url_by_arch $1)"
-    tar -xzf "$PACKAGE-$1.tar.gz"
-    mv "$PACKAGE" "$BASE_DIR/usr/bin/$PACKAGE"
-    chmod 755 "$BASE_DIR/usr/bin/$PACKAGE"
-    # Build
+    curl -fsLo "tmp/$PACKAGE-$ARCH.tar.gz" "$(get_url_by_arch "$ARCH")"
+    tar -xf "tmp/$PACKAGE-$ARCH.tar.gz"
+    install -D -m 755 -t "$BASE_DIR/usr/bin" dufs && rm dufs
+
+    # Package deb
+    mkdir -p "$BASE_DIR/DEBIAN"
+    SIZE=$(du -sk "$BASE_DIR"/usr | cut -f1)
+    echo "Package: $PACKAGE
+Version: $VERSION-1
+Architecture: $ARCH
+Installed-Size: $SIZE
+Maintainer: wcbing <i@wcbing.top>
+Section: web
+Priority: optional
+Homepage: https://github.com/$REPO
+Description: A file server
+ A file server that supports static serving, uploading,
+ searching, accessing control, webdav...
+" > "$BASE_DIR/DEBIAN/control"
+
     dpkg-deb -b --root-owner-group -Z xz "$BASE_DIR" output
 }
 
 get_url_by_arch() {
-    DOWNLOAD_PERFIX="https://github.com/$REPO/releases/latest/download"
+    DOWNLOAD_PREFIX="https://github.com/$REPO/releases/latest/download"
     case $1 in
-    "amd64") echo "$DOWNLOAD_PERFIX/$AMD64_FILENAME" ;;
-    "arm64") echo "$DOWNLOAD_PERFIX/$ARM64_FILENAME" ;;
+    "amd64") echo "$DOWNLOAD_PREFIX/$AMD64_FILENAME" ;;
+    "arm64") echo "$DOWNLOAD_PREFIX/$ARM64_FILENAME" ;;
     esac
 }
 
-mkdir output
+prepare
 
-for i in $ARCH; do
-    echo "Building $i package..."
-    build "$i"
+for ARCH in $ARCH_LIST; do
+    echo "Building $ARCH package..."
+    build
 done
 
 # Create repo files
-cd output
-apt-ftparchive packages . > Packages
-apt-ftparchive release . > Release
+cd output && apt-ftparchive packages . > Packages && apt-ftparchive release . > Release
